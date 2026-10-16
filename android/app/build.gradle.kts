@@ -47,3 +47,16 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+android {
+    namespace = "com.example.attendance_app"
+    compileSdk = flutter.compileSdkVersion
+
+    defaultConfig {
+        applicationId = "com.example.attendance_app"
+        minSdk = 21       // Wajib minimal 21 untuk ML Kit
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+}
