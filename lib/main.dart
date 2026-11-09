@@ -1,6 +1,11 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:attendance_app/ui/home_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:attendance_app/ui/app_theme.dart';
+import 'package:attendance_app/ui/dashboard_screen.dart';
+import 'package:attendance_app/ui/home_screen.dart'
+    show kUserClassKey, kUserNameKey, kUserRegisteredKey;
+import 'package:attendance_app/ui/register/register_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,28 +31,45 @@ class AttendanceApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Attendance App',
+      title: 'Presensi IDN',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blueAccent,
-          primary: const Color(0xFF1A008F),
-        ),
-        scaffoldBackgroundColor: Colors.white,
-        appBarTheme: const AppBarTheme(
-          elevation: 0,
-          backgroundColor: Color(0xFF1A008F),
-          foregroundColor: Colors.white,
-          centerTitle: true,
-          titleTextStyle: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
-      home: const HomeScreen(),
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
+      home: const RootGate(),
+    );
+  }
+}
+
+/// Gerbang awal aplikasi:
+/// - Belum sertifikasi -> layar Sertifikasi (data diri + daftar wajah).
+/// - Sudah sertifikasi -> langsung Dashboard dengan navbar (tidak perlu
+///   daftar ulang; cukup verifikasi wajah bila diminta aplikasi).
+class RootGate extends StatelessWidget {
+  const RootGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<SharedPreferences>(
+      future: SharedPreferences.getInstance(),
+      builder: (context, snapshot) {
+        // Splash sederhana saat preferensi sedang dibaca.
+        if (!snapshot.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final prefs = snapshot.data!;
+        final registered = prefs.getBool(kUserRegisteredKey) ?? false;
+        // Fallback defensif: user yang datanya sudah lengkap dianggap
+        // sudah login meskipun penanda sertifikasi hilang.
+        final hasName = (prefs.getString(kUserNameKey) ?? '').isNotEmpty;
+        final hasClass = (prefs.getString(kUserClassKey) ?? '').isNotEmpty;
+        final isLoggedIn = registered || (hasName && hasClass);
+        return isLoggedIn
+            ? const DashboardScreen()
+            : const RegisterScreen();
+      },
     );
   }
 }
